@@ -4,17 +4,20 @@ pipeline {
         maven 'M2_HOME'
     }
     stages {
-        stage('GIT') { 
-            // C'est l'étape redondante que je vous ai conseillé de supprimer, 
-            // mais l'erreur actuelle n'est pas causée par elle.
-            // On peut la laisser pour l'instant si vous préférez, mais elle n'est pas nécessaire.
+        // Optionnel : Retirez ce stage si vous n'en avez pas besoin. Jenkins clone déjà le dépôt.
+        stage('GIT') {
             steps {
                 git branch: 'master', url: 'https://github.com/zormatii/DEVOPs.git'
             }
         }
+        
         stage('Build') {
             steps {
-                sh 'mvn clean install' // <--- Le problème est ici
+                // *** LA CORRECTION EST ICI ***
+                dir('student-management') { 
+                    sh 'mvn clean install'
+                }
+                // ****************************
             }
         }
     }
