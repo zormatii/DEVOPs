@@ -1,21 +1,20 @@
 pipeline {
     agent any
-
     tools {
         maven 'M2_HOME'
     }
-
     stages {
-        stage('GIT') {
+        stage('GIT') { 
+            // C'est l'étape redondante que je vous ai conseillé de supprimer, 
+            // mais l'erreur actuelle n'est pas causée par elle.
+            // On peut la laisser pour l'instant si vous préférez, mais elle n'est pas nécessaire.
             steps {
-                git branch: 'master',
-                    url: 'https://github.com/zormatii/DEVOPs.git/'
+                git branch: 'master', url: 'https://github.com/zormatii/DEVOPs.git'
             }
         }
-
         stage('Build') {
             steps {
-                sh 'mvn clean install'
+                sh 'mvn clean install' // <--- Le problème est ici
             }
         }
     }
