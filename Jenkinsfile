@@ -1,24 +1,37 @@
 pipeline {
     agent any
+    triggers {
+        githubPush()
+    }
     tools {
-        maven 'M2_HOME'
+        maven 'Maven3'
+        jdk 'jdk17'
     }
     stages {
-        // Optionnel : Retirez ce stage si vous n'en avez pas besoin. Jenkins clone déjà le dépôt.
-        stage('GIT') {
+        stage('Checkout') {
             steps {
-                git branch: 'master', url: 'https://github.com/zormatii/DEVOPs.git'
+                checkout scm
             }
         }
-        
-        stage('Build') {
+        stage('Compile') {
             steps {
-                // *** LA CORRECTION EST ICI ***
-                dir('student-management') { 
-                    sh 'mvn clean install'
-                }
-                // ****************************
+                sh 'mvn clean compile'
             }
+        }
+        stage('Run Tests') {
+            steps {
+                sh 'mvn test -Dtest=EnrollementManagementTests,DepartementsManagementTests,StudentManagementApplicationTests'
+            }
+        }
+    }
+    post {
+        always {
+            // Envoie un e-mail quel que soit le résultat
+            emailext (
+                subject: "Build ${currentBuild.fullDisplayName} - ${currentBuild.currentResult}",
+                body: "Le build ${env.BUILD_NUMBER} pour ${env.JOB_NAME} est terminé avec le statut : ${currentBuild.currentResult}.\n\nConsultez la console : ${env.BUILD_URL}",
+                to: "mohamedamienchoukani02@gmail.com"
+            )
         }
     }
 }
