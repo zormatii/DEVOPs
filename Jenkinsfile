@@ -20,7 +20,7 @@ pipeline {
         }
         stage('Run Tests') {
             steps {
-                sh 'mvn test -Dtest=EnrollementManagementTests,DepartementsManagementTests,StudentManagementApplicationTests'
+                sh 'mvn test -Dtest=*,DepartementsManagementsTests,StudentManagementApplicationTests'
             }
         }
     }
