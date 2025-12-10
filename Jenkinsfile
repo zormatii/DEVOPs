@@ -1,37 +1,50 @@
 pipeline {
     agent any
-    triggers {
-        githubPush()
-    }
+
     tools {
-        maven 'Maven3'
-        jdk 'jdk17'
+        maven "M2_HOME"
+        jdk "JAVA_HOME"
     }
+
+    environment {
+        IMAGE_NAME = "zormatiiii/student-management" // Your Docker Hub repo
+        DOCKER_HUB_CREDS = "docker-hub-creds"
+    }
+
     stages {
-        stage('Checkout') {
+
+        stage("Build & Test") {
             steps {
-                checkout scm
+                sh "mvn clean package"
+                junit 'target/surefire-reports/*.xml'
             }
         }
-        stage('Compile') {
+
+        stage("Docker Build & Push") {
             steps {
-                sh 'mvn clean compile'
+                script {
+                    docker.withRegistry('https://registry.hub.docker.com/', "${DOCKER_HUB_CREDS}") {
+                        // Build the image using your Dockerfile
+                        def image = docker.build("${IMAGE_NAME}:${env.BUILD_NUMBER}")
+
+                        // Push with build number tag
+                        image.push()
+
+                        // Push latest tag
+                        image.push("latest")
+                    }
+                }
             }
         }
-        stage('Run Tests') {
+
+        stage("Deploy") {
             steps {
-                sh 'mvn test -Dtest=*,DepartementsManagementsTests,StudentManagementApplicationTests'
+                // Stop old container if exists
+                sh "docker rm -f student-management || true"
+
+                // Run the latest image
+                sh "docker run -d -p 8089:8089 --name student-management ${IMAGE_NAME}:latest"
             }
-        }
-    }
-    post {
-        always {
-            // Envoie un e-mail quel que soit le résultat
-            emailext (
-                subject: "Build ${currentBuild.fullDisplayName} - ${currentBuild.currentResult}",
-                body: "Le build ${env.BUILD_NUMBER} pour ${env.JOB_NAME} est terminé avec le statut : ${currentBuild.currentResult}.\n\nConsultez la console : ${env.BUILD_URL}",
-                to: "mohamedamienchoukani02@gmail.com"
-            )
         }
     }
 }
