@@ -7,12 +7,11 @@ pipeline {
     }
 
     environment {
-        IMAGE_NAME = "zormatiiii/student-management" // Your Docker Hub repo
-        DOCKER_HUB_CREDS = "docker-hub-creds"
+        IMAGE_NAME = "zormatiiii/student-management"
+        DOCKER_HUB_CREDS = credentials('docker-hub-creds') // Securely fetch credentials
     }
 
     stages {
-
         stage("Build & Test") {
             steps {
                 sh "mvn clean package"
@@ -22,27 +21,27 @@ pipeline {
 
         stage("Docker Build & Push") {
             steps {
-                script {
-                    docker.withRegistry('https://registry.hub.docker.com/', "${DOCKER_HUB_CREDS}") {
-                        // Build the image using your Dockerfile
-                        def image = docker.build("${IMAGE_NAME}:${env.BUILD_NUMBER}")
-
-                        // Push with build number tag
-                        image.push()
-
-                        // Push latest tag
-                        image.push("latest")
-                    }
-                }
+                // Using shell commands instead of the 'docker' DSL
+                sh """
+                    # Login to Docker Hub
+                    echo "${DOCKER_HUB_CREDS_PSW}" | docker login -u "${DOCKER_HUB_CREDS_USR}" --password-stdin
+                    
+                    # Build the image
+                    docker build -t ${IMAGE_NAME}:${env.BUILD_NUMBER} -t ${IMAGE_NAME}:latest .
+                    
+                    # Push tags
+                    docker push ${IMAGE_NAME}:${env.BUILD_NUMBER}
+                    docker push ${IMAGE_NAME}:latest
+                    
+                    # Logout
+                    docker logout
+                """
             }
         }
 
         stage("Deploy") {
             steps {
-                // Stop old container if exists
                 sh "docker rm -f student-management || true"
-
-                // Run the latest image
                 sh "docker run -d -p 8089:8089 --name student-management ${IMAGE_NAME}:latest"
             }
         }
